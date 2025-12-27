@@ -1,0 +1,10 @@
+{
+  "workbench.colorCustomizations": {
+    "statusBar.background": "#136980",
+    "statusBar.foreground": "#e5bb7b",
+    "statusBarItem.hoverBackground": "#0d2f39"
+  },
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "prisma.pinToPrisma6": true
+}

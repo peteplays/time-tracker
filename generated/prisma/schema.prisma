@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  billings      Billing[]
+  projects      Project[]      @relation("ProjectOwner")
+  organizations Organization[] @relation("OrganizationOwner")
+
+  // @unique already creates an index, so separate @@index([email]) is redundant
+  @@index([name])
+}
+
+// Time Tracker Models
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  address     String?
+  email       String?
+  phone       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contacts OrganizationContact[]
+  projects Project[]
+  user     User?                 @relation("OrganizationOwner", fields: [userId], references: [id])
+  userId   String?
+
+  @@index([name])
+  @@index([userId]) // Index for filtering organizations by owner
+}
+
+model OrganizationContact {
+  id             String   @id @default(cuid())
+  organizationId String
+  firstName      String
+  lastName       String
+  position       String?
+  phone          String?
+  email          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model Project {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  rate           Decimal? @db.Decimal(10, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  billings     Billing[]
+  user         User?        @relation("ProjectOwner", fields: [userId], references: [id])
+  userId       String?
+
+  @@index([organizationId])
+  @@index([userId]) // Index for filtering projects by owner
+  @@index([organizationId, userId]) // Composite index for queries filtering by both
+}
+
+model Billing {
+  id            String    @id @default(cuid())
+  userId        String
+  projectId     String
+  startDateTime DateTime
+  endDateTime   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([startDateTime])
+  @@index([userId, startDateTime]) // Composite index for user time range queries
+  @@index([projectId, startDateTime]) // Composite index for project time range queries
+  @@index([userId, projectId]) // Composite index for user-project queries
+}
